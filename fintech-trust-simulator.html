@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintech UX Trust Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0d0d11;color:#eeede9;font-family:'DM Mono',monospace}
+
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.28;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+.glow{
+  position:fixed;width:800px;height:800px;border-radius:50%;
+  filter:blur(130px);pointer-events:none;z-index:0;
+  top:-300px;left:50%;transform:translateX(-50%);
+  transition:background 1.8s ease;
+  background:radial-gradient(circle,rgba(158,207,42,.045) 0%,transparent 65%);
+  animation:gd 20s ease-in-out infinite;
+}
+@keyframes gd{0%,100%{transform:translateX(-50%) translate(0,0)}40%{transform:translateX(-50%) translate(-20px,15px)}70%{transform:translateX(-50%) translate(15px,-10px)}}
+
+/* ── OUTER SHELL ── */
+.shell{
+  position:relative;z-index:1;
+  height:100vh;
+  display:grid;
+  grid-template-columns:260px 1fr 260px;
+  grid-template-rows:1fr;
+}
+
+/* ── LEFT: CONTROLS ── */
+.left{
+  border-right:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;
+  padding:32px 28px;gap:0;overflow:hidden;
+}
+
+.wordmark{
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(238,237,233,.25);margin-bottom:28px;
+}
+.wordmark b{color:#9ecf2a;font-weight:700}
+
+/* controls */
+.controls{flex:1;display:flex;flex-direction:column;gap:18px;overflow:hidden}
+.sec-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:rgba(238,237,233,.18);margin-bottom:6px}
+
+.ctrl{display:flex;flex-direction:column;gap:6px}
+.ctrl-hd{display:flex;justify-content:space-between;align-items:center}
+.ctrl-name{font-size:10px;color:rgba(238,237,233,.65);letter-spacing:.02em}
+.ctrl-pill{font-size:9px;color:#9ecf2a;background:rgba(158,207,42,.1);padding:2px 8px;border-radius:4px}
+
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:2px;
+  background:rgba(255,255,255,.1);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:#9ecf2a;cursor:grab;
+  box-shadow:0 0 0 3px rgba(158,207,42,.12),0 0 10px rgba(158,207,42,.22);
+  transition:transform .15s,box-shadow .15s;
+}
+input[type=range]:active::-webkit-slider-thumb{
+  transform:scale(1.25);cursor:grabbing;
+  box-shadow:0 0 0 5px rgba(158,207,42,.1),0 0 18px rgba(158,207,42,.32);
+}
+.tick-row{display:flex;justify-content:space-between}
+.tick{font-size:8px;color:rgba(238,237,233,.18)}
+
+select{
+  -webkit-appearance:none;width:100%;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;color:#eeede9;font-family:'DM Mono',monospace;
+  font-size:10px;padding:9px 28px 9px 11px;cursor:pointer;outline:none;
+  transition:border-color .2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M1 1l3.5 3L8 1' stroke='rgba(238,237,233,.2)' fill='none' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+select:focus{border-color:rgba(158,207,42,.28)}
+select option{background:#13131a}
+
+/* impact bars */
+.impact{border-top:1px solid rgba(255,255,255,.06);padding-top:18px;margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.ib-row{display:flex;align-items:center;gap:8px}
+.ib-name{font-size:8.5px;color:rgba(238,237,233,.28);flex:0 0 110px}
+.ib-track{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:visible}
+.ib-fill{height:100%;border-radius:2px;transition:width .75s cubic-bezier(.16,1,.3,1),background .5s;position:relative}
+.ib-fill::after{content:'';position:absolute;right:-1px;top:-2px;width:6px;height:6px;border-radius:50%;background:inherit}
+.ib-val{font-size:9px;flex:0 0 26px;text-align:right;transition:color .4s}
+
+/* ── CENTER ── */
+.center{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* top bar */
+.top-bar{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:32px 36px 0;
+  flex-shrink:0;
+}
+
+.title-block{}
+.eyebrow{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(238,237,233,.28);margin-bottom:8px}
+.main-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(1.8rem,2.4vw,2.5rem);
+  font-weight:800;letter-spacing:-.03em;line-height:1;color:#eeede9;
+}
+.main-title em{font-style:normal;color:#9ecf2a}
+
+/* score top-right */
+.score-block{text-align:right;flex-shrink:0}
+.score-num{
+  font-family:'Syne',sans-serif;
+  font-size:3.8rem;font-weight:800;
+  letter-spacing:-.05em;line-height:1;
+  transition:color .6s;
+}
+.score-ring-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:4px}
+.score-bar-wrap{width:80px;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:visible}
+.score-bar{height:100%;border-radius:2px;transition:width .9s cubic-bezier(.16,1,.3,1),background .6s;position:relative}
+.score-bar::after{content:'';position:absolute;right:-1px;top:-2.5px;width:7px;height:7px;border-radius:50%;background:inherit;box-shadow:0 0 8px currentColor}
+.score-verdict{font-size:10px;transition:color .5s;letter-spacing:.04em}
+
+/* phone wrapper — takes remaining vertical space */
+.phone-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:20px 36px 16px;
+  overflow:hidden;
+}
+
+.phone{
+  /* scale phone to fit available vertical space */
+  height:100%;max-height:560px;
+  aspect-ratio:9/18;
+  background:#101015;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:40px;
+  padding:12px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.04),
+    0 40px 100px rgba(0,0,0,.75),
+    inset 0 1px 0 rgba(255,255,255,.07);
+  display:flex;flex-direction:column;
+}
+.phone-notch{
+  width:60px;height:16px;background:#0d0d11;
+  border-radius:0 0 10px 10px;margin:0 auto 10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ndot{width:5px;height:5px;border-radius:50%;background:#1c1c24}
+.pscreen{
+  background:#191920;border-radius:28px;
+  flex:1;padding:16px;display:flex;flex-direction:column;gap:11px;
+  overflow:hidden;
+}
+
+.p-top{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.p-appname{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#eeede9;letter-spacing:-.01em}
+.p-steppill{
+  font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+  background:rgba(255,255,255,.07);color:rgba(238,237,233,.3);
+  padding:3px 8px;border-radius:8px;transition:all .4s;flex-shrink:0;
+}
+
+.p-notif{
+  background:rgba(255,255,255,.05);border-radius:9px;
+  padding:8px 10px;display:flex;align-items:center;gap:7px;
+  opacity:0;transform:translateY(-5px);
+  transition:opacity .45s,transform .45s;flex-shrink:0;
+}
+.p-notif.on{opacity:1;transform:translateY(0)}
+.p-ndot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .4s}
+.p-ntxt{font-size:9.5px;color:rgba(238,237,233,.45);transition:color .4s;line-height:1.3}
+
+.p-amount{text-align:center;padding:8px 0 4px;flex-shrink:0}
+.p-lbl{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:rgba(238,237,233,.22);margin-bottom:4px}
+.p-num{
+  font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;
+  letter-spacing:-.04em;color:#eeede9;line-height:1;
+}
+.p-to{font-size:9px;color:rgba(238,237,233,.28);margin-top:4px}
+
+.p-fees{
+  background:rgba(255,255,255,.04);border-radius:10px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:5px;
+  border:1px solid transparent;transition:background .45s,border-color .45s;
+  flex-shrink:0;
+}
+.fl{display:flex;justify-content:space-between;align-items:baseline}
+.fk{font-size:9px;color:rgba(238,237,233,.28)}
+.fv{font-size:9px;color:rgba(238,237,233,.6);transition:color .4s}
+.fv.hi{color:#9ecf2a;font-weight:400}
+.fv.dim{color:rgba(238,237,233,.2);font-style:italic}
+
+.p-copy{
+  font-size:10px;color:rgba(238,237,233,.45);
+  line-height:1.6;font-weight:300;transition:color .4s;
+  flex-shrink:0;
+}
+
+.p-btn{
+  margin-top:auto;
+  border-radius:12px;padding:13px;text-align:center;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  transition:all .5s cubic-bezier(.16,1,.3,1);cursor:default;
+  flex-shrink:0;
+}
+
+/* bottom bar */
+.bottom-bar{
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 36px 20px;
+}
+.foot-l{font-size:9px;color:rgba(238,237,233,.18);letter-spacing:.1em;text-transform:uppercase}
+.foot-r{font-size:9px;color:rgba(238,237,233,.18)}
+
+/* ── RIGHT ── */
+.right{
+  border-left:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;
+  padding:32px 28px;gap:0;overflow:hidden;
+}
+
+.right-top-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:rgba(238,237,233,.18);margin-bottom:20px}
+
+/* insight */
+.insight-card{
+  position:relative;border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:18px 20px;
+  transition:border-color .5s;overflow:hidden;
+  margin-bottom:16px;
+}
+.ins-bar{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0;transition:background .5s}
+.ins-emoji{font-size:1.3rem;margin-bottom:8px;display:block;line-height:1}
+.ins-h{
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
+  color:#eeede9;margin-bottom:7px;line-height:1.3;transition:color .4s;
+}
+.ins-b{font-size:10px;color:rgba(238,237,233,.4);line-height:1.75;font-weight:300}
+
+/* tags */
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.tag{font-size:9px;padding:4px 10px;border-radius:20px;letter-spacing:.02em;transition:all .35s}
+
+/* jargon lesson */
+.jargon-block{
+  margin-top:auto;
+  border-top:1px solid rgba(255,255,255,.06);
+  padding-top:20px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.jargon-lbl{font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:rgba(238,237,233,.18);margin-bottom:4px}
+.jargon-row{
+  display:flex;flex-direction:column;gap:3px;
+  padding:10px 12px;
+  background:rgba(255,255,255,.03);border-radius:8px;
+  border:1px solid rgba(255,255,255,.06);
+  transition:border-color .4s;
+}
+.jargon-row.active{border-color:rgba(158,207,42,.2);background:rgba(158,207,42,.03)}
+.jargon-bad{font-size:9.5px;color:rgba(224,80,80,.8);text-decoration:line-through;font-weight:300}
+.jargon-good{font-size:9.5px;color:#9ecf2a;font-weight:300}
+.jargon-neutral{font-size:9.5px;color:rgba(238,237,233,.35);font-weight:300}
+
+/* anims */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.left{animation:fadeUp .55s cubic-bezier(.16,1,.3,1) .05s both}
+.center{animation:fadeUp .55s cubic-bezier(.16,1,.3,1) .12s both}
+.right{animation:fadeUp .55s cubic-bezier(.16,1,.3,1) .19s both}
+</style>
+</head>
+<body>
+
+<div class="glow" id="glow"></div>
+
+<div class="shell">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="wordmark">Fintech UX <b>Simulator</b></div>
+
+    <div class="controls">
+      <div class="sec-lbl">Design parameters</div>
+
+      <div class="ctrl">
+        <div class="ctrl-hd">
+          <span class="ctrl-name">Confirmation steps</span>
+          <span class="ctrl-pill" id="fpill">2 steps</span>
+        </div>
+        <input type="range" id="friction" min="1" max="5" value="2" step="1">
+        <div class="tick-row">
+          <span class="tick">instant</span>
+          <span class="tick">balanced</span>
+          <span class="tick">too much</span>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-hd"><span class="ctrl-name">System feedback</span></div>
+        <select id="feedback">
+          <option value="high">Instant: haptics and live updates</option>
+          <option value="medium">Delayed: standard page loads</option>
+          <option value="none">Silent: no confirmation at all</option>
+        </select>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-hd"><span class="ctrl-name">Copy clarity</span></div>
+        <select id="copy">
+          <option value="plain">Plain English: direct and human</option>
+          <option value="jargon">Banking jargon: legacy terms</option>
+          <option value="vague">Vague: obscured details</option>
+        </select>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-hd"><span class="ctrl-name">Fee transparency</span></div>
+        <select id="fees">
+          <option value="upfront">Full breakdown before confirm</option>
+          <option value="partial">Fee shown, rate hidden</option>
+          <option value="hidden">Revealed post-transaction</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="impact">
+      <div class="sec-lbl">Impact breakdown</div>
+      <div class="ib-row"><span class="ib-name">Confirmation steps</span><div class="ib-track"><div class="ib-fill" id="ib0"></div></div><span class="ib-val" id="iv0">+20</span></div>
+      <div class="ib-row"><span class="ib-name">System feedback</span><div class="ib-track"><div class="ib-fill" id="ib1"></div></div><span class="ib-val" id="iv1">+22</span></div>
+      <div class="ib-row"><span class="ib-name">Copy clarity</span><div class="ib-track"><div class="ib-fill" id="ib2"></div></div><span class="ib-val" id="iv2">+18</span></div>
+      <div class="ib-row"><span class="ib-name">Fee transparency</span><div class="ib-track"><div class="ib-fill" id="ib3"></div></div><span class="ib-val" id="iv3">+20</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+
+    <div class="top-bar">
+      <div class="title-block">
+        <div class="eyebrow">Fintech UX · Trust Simulator</div>
+        <div class="main-title">Trust is a<br><em>design decision</em></div>
+      </div>
+      <div class="score-block">
+        <div class="score-num" id="snum">72</div>
+        <div class="score-ring-row">
+          <div class="score-bar-wrap"><div class="score-bar" id="sbar"></div></div>
+          <div class="score-verdict" id="sverdict">Anxiety present</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-notch"><div class="ndot"></div></div>
+        <div class="pscreen">
+
+          <div class="p-top">
+            <div class="p-appname">Vault</div>
+            <div class="p-steppill" id="steppill">Step 1 of 2</div>
+          </div>
+
+          <div class="p-notif" id="pnotif">
+            <div class="p-ndot" id="pndot"></div>
+            <div class="p-ntxt" id="pntxt">Payment confirmed</div>
+          </div>
+
+          <div class="p-amount">
+            <div class="p-lbl">sending</div>
+            <div class="p-num">$2,500</div>
+            <div class="p-to">to James Wilson</div>
+          </div>
+
+          <div class="p-fees" id="pfees">
+            <div class="fl"><span class="fk">You send</span><span class="fv">$2,500.00</span></div>
+            <div class="fl"><span class="fk">Fee</span><span class="fv" id="ffee">$4.20</span></div>
+            <div class="fl"><span class="fk">Rate</span><span class="fv" id="frate">1.0842</span></div>
+            <div class="fl"><span class="fk">They get</span><span class="fv hi" id="fgets">€2,707.50</span></div>
+            <div class="fl"><span class="fk">Arrives</span><span class="fv" id="farr">~4 hours</span></div>
+          </div>
+
+          <div class="p-copy" id="pcopy"></div>
+
+          <div class="p-btn" id="pbtn">Review and Confirm</div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <span class="foot-l">Trust is the love language of fintech</span>
+      <span class="foot-r">Monzo, Wise, Nubank, Chime · Edelman Trust Barometer 2024</span>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <div class="right-top-lbl">What this means</div>
+
+    <div class="insight-card" id="icrd">
+      <div class="ins-bar" id="ibar"></div>
+      <span class="ins-emoji" id="iemoji">✦</span>
+      <div class="ins-h" id="ihead">The Monzo and Wise playbook</div>
+      <div class="ins-b" id="ibody">Plain language. Visible fees. Intentional friction. Instant feedback. Users feel informed, protected, and in control simultaneously.</div>
+    </div>
+
+    <div class="tags" id="tags"></div>
+
+    <!-- Jargon vs plain language lesson -->
+    <div class="jargon-block">
+      <div class="jargon-lbl">Jargon vs plain language</div>
+
+      <div class="jargon-row" id="jr0">
+        <div class="jargon-bad">Execute remittance</div>
+        <div class="jargon-good">Send $2,500</div>
+      </div>
+
+      <div class="jargon-row" id="jr1">
+        <div class="jargon-bad">Initiate KYC verification</div>
+        <div class="jargon-good">Verify your identity, takes 2 min</div>
+      </div>
+
+      <div class="jargon-row" id="jr2">
+        <div class="jargon-bad">Intermediary adjustments may apply</div>
+        <div class="jargon-good">No hidden fees on this transfer</div>
+      </div>
+
+      <div class="jargon-row" id="jr3">
+        <div class="jargon-bad" id="jr3-bad">Outbound clearinghouse remittance</div>
+        <div class="jargon-good" id="jr3-good">Arrives by 2pm tomorrow</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+const STATES=[
+  {test:(f,fb,cp,fe)=>fe==='hidden',
+   emoji:'💣',head:'Hidden fees are a trust grenade',
+   body:'Users who discover charges after confirming rarely return and they leave reviews. This is how Wise built its business: by showing the fee competitors hid.',
+   accent:'#d94f4f',verdict:'Drop-off risk',
+   tags:[{t:'Surprised by charges',bad:true},{t:'Feels deceived',bad:true},{t:'Will not return',bad:true}]},
+  {test:(f,fb,cp,fe)=>fb==='none',
+   emoji:'👻',head:'Did that actually go through?',
+   body:'Silent execution triggers the worst fintech anxiety. The void between tapping send and knowing it arrived is where users panic and call support.',
+   accent:'#d94f4f',verdict:'Drop-off risk',
+   tags:[{t:'Transaction feels lost',bad:true},{t:'Will call support',bad:true}]},
+  {test:(f,fb,cp,fe)=>f>=5,
+   emoji:'😵',head:'Five steps signals bureaucracy, not security',
+   body:'Thoughtful friction builds trust. Excessive friction triggers abandonment. Two or three checkpoints is the sweet spot. Users stop reading after step three.',
+   accent:'#c4883a',verdict:'Anxiety present',
+   tags:[{t:'Fatigued by steps',bad:true},{t:'Stopped reading',bad:true}]},
+  {test:(f,fb,cp,fe)=>cp==='vague',
+   emoji:'🔒',head:'Obscurity reads as deception',
+   body:'"Third-party adjustments may apply" means: we are charging you something and do not want to say what. Vague copy is not neutral. It is suspicious.',
+   accent:'#c4883a',verdict:'Anxiety present',
+   tags:[{t:'Confused by language',bad:true},{t:'Suspects hidden costs',bad:true}]},
+  {test:(f,fb,cp,fe)=>cp==='jargon',
+   emoji:'📋',head:'Jargon is a trust barrier',
+   body:'"Execute remittance" tells a user nothing. Plain language is not simplification. It is respect. Nubank rewrote every screen in plain Portuguese and became Brazil\'s most trusted bank.',
+   accent:'#c4883a',verdict:'Anxiety present',
+   tags:[{t:'Feels excluded',bad:true},{t:'Does not trust the process',bad:true}]},
+  {test:(f,fb,cp,fe)=>f===1&&(fb!=='high'||fe!=='upfront'),
+   emoji:'⚡',head:'Speed only earns trust when everything else is locked in',
+   body:'One-tap works for Apple Pay because Face ID, instant receipt, and full transparency surround it. Speed without those signals feels reckless, not convenient.',
+   accent:'#c4883a',verdict:'Anxiety present',
+   tags:[{t:'Felt too rushed',bad:true},{t:'Anxious about confirmation',bad:true}]},
+  {test:(f,fb,cp,fe,s)=>s>=78,
+   emoji:'✦',head:'The Monzo and Wise playbook',
+   body:'Plain language. Visible fees. Intentional friction. Instant feedback. Users feel informed, protected, and in control. That combination drives NPS above 70 and turns users into evangelists.',
+   accent:'#9ecf2a',verdict:'High trust',
+   tags:[{t:'Fully informed',bad:false},{t:'Feels protected',bad:false},{t:'Will recommend',bad:false}]},
+  {test:()=>true,
+   emoji:'📊',head:'One signal is holding this back',
+   body:'Most fintech apps live here. The product works and trust is partial. The gap between fine and loved is usually a single design decision away.',
+   accent:'#5a8fc4',verdict:'Anxiety present',
+   tags:[{t:'Cautiously proceeding',bad:false},{t:'Will not recommend yet',bad:true}]}
+];
+
+function calc(f,fb,cp,fe){
+  return[
+    f===1?-12:f<=3?20:f===4?8:-12,
+    fb==='high'?22:fb==='medium'?4:-28,
+    cp==='plain'?18:cp==='jargon'?-8:-28,
+    fe==='upfront'?20:fe==='partial'?0:-28
+  ];
+}
+
+let prev=72,raf=null;
+function animN(to){
+  if(raf)cancelAnimationFrame(raf);
+  const from=prev,dur=800,t0=performance.now();
+  (function run(now){
+    const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);
+    $('snum').textContent=Math.round(from+(to-from)*e);
+    if(p<1)raf=requestAnimationFrame(run);
+  })(t0);
+  prev=to;
+}
+
+function update(){
+  const f=+$('friction').value,fb=$('feedback').value,cp=$('copy').value,fe=$('fees').value;
+  const[s0,s1,s2,s3]=calc(f,fb,cp,fe);
+  const score=Math.max(0,Math.min(100,40+s0+s1+s2+s3));
+
+  $('fpill').textContent=f+(f===1?' step':' steps');
+
+  const col=score>=75?'#9ecf2a':score>=45?'#c4883a':'#d94f4f';
+  $('snum').style.color=col;
+  animN(score);
+  $('sbar').style.width=score+'%';
+  $('sbar').style.background=col;
+  $('sverdict').textContent=STATES.find(s=>s.test(f,fb,cp,fe,score)).verdict;
+  $('sverdict').style.color=col;
+
+  $('glow').style.background=`radial-gradient(circle,${score>=75?'rgba(158,207,42,.045)':score>=45?'rgba(196,136,58,.04)':'rgba(217,79,79,.04)'} 0%,transparent 65%)`;
+
+  [s0,s1,s2,s3].forEach((v,i)=>{
+    const c=v>0?'#9ecf2a':v<0?'#d94f4f':'#2a2a35';
+    $('ib'+i).style.width=Math.round((Math.abs(v)/28)*100)+'%';
+    $('ib'+i).style.background=c;
+    $('iv'+i).textContent=(v>0?'+':'')+v;
+    $('iv'+i).style.color=v>0?'#9ecf2a':v<0?'#d94f4f':'rgba(238,237,233,.2)';
+  });
+
+  const st=STATES.find(s=>s.test(f,fb,cp,fe,score));
+  $('icrd').style.borderColor=st.accent+'22';
+  $('ibar').style.background=st.accent;
+  $('iemoji').textContent=st.emoji;
+  $('ihead').textContent=st.head;
+  $('ihead').style.color=score>=78?'#9ecf2a':'#eeede9';
+  $('ibody').textContent=st.body;
+  $('tags').innerHTML=st.tags.map(t=>`<span class="tag" style="background:${t.bad?'rgba(217,79,79,.1)':'rgba(158,207,42,.09)'};color:${t.bad?'#d94f4f':'#9ecf2a'}">${t.t}</span>`).join('');
+
+  // jargon rows highlight when jargon is selected
+  const isJargon=cp==='jargon';
+  ['jr0','jr1','jr2','jr3'].forEach(id=>$(id).classList.toggle('active',isJargon));
+
+  // phone
+  $('steppill').textContent='Step 1 of '+f;
+
+  const pn=$('pnotif');
+  if(fb==='high'){
+    pn.classList.add('on');
+    $('pndot').style.background='#9ecf2a';
+    $('pntxt').textContent='Payment confirmed, arrives tomorrow';
+    $('pntxt').style.color='rgba(158,207,42,.8)';
+  }else if(fb==='medium'){
+    pn.classList.add('on');
+    $('pndot').style.background='#c4883a';
+    $('pntxt').textContent='Processing, check app later';
+    $('pntxt').style.color='rgba(238,237,233,.35)';
+  }else{
+    pn.classList.remove('on');
+  }
+
+  const pf=$('pfees');
+  if(fe==='upfront'){
+    pf.style.background='rgba(158,207,42,.05)';pf.style.borderColor='rgba(158,207,42,.15)';
+    $('ffee').className='fv';$('ffee').textContent='$4.20';
+    $('frate').className='fv';$('frate').textContent='1.0842';
+    $('fgets').className='fv hi';$('fgets').textContent='€2,707.50';
+    $('farr').className='fv';$('farr').textContent='~4 hours';
+  }else if(fe==='partial'){
+    pf.style.background='rgba(196,136,58,.04)';pf.style.borderColor='rgba(196,136,58,.13)';
+    $('ffee').className='fv';$('ffee').textContent='$4.20';
+    $('frate').className='fv dim';$('frate').textContent='Applied at processing';
+    $('fgets').className='fv dim';$('fgets').textContent='Calculated at transfer';
+    $('farr').className='fv dim';$('farr').textContent='1 to 3 business days';
+  }else{
+    pf.style.background='rgba(217,79,79,.05)';pf.style.borderColor='rgba(217,79,79,.13)';
+    $('ffee').className='fv dim';$('ffee').textContent='Confirmed after transfer';
+    $('frate').className='fv dim';$('frate').textContent='—';
+    $('fgets').className='fv dim';$('fgets').textContent='—';
+    $('farr').className='fv dim';$('farr').textContent='Variable';
+  }
+
+  $('pcopy').textContent={
+    plain:'Transferring to James Wilson. Arrives by 2pm tomorrow. No hidden charges.',
+    jargon:'Initiating outbound clearinghouse remittance. ACCT-ID 4492-V. Subject to processing variance and intermediary overhead.',
+    vague:'Processing request. Third-party adjustments may apply upon finalization.'
+  }[cp];
+  $('pcopy').style.color=cp==='plain'?'rgba(238,237,233,.55)':cp==='jargon'?'rgba(238,237,233,.28)':'rgba(238,237,233,.18)';
+
+  const btn=$('pbtn');
+  if(score>=75){
+    btn.style.background='#9ecf2a';btn.style.color='#0d0d11';
+    btn.textContent=f===1?'Send $2,500':'Review and Confirm';
+  }else if(score>=45){
+    btn.style.background='rgba(196,136,58,.13)';btn.style.color='#c4883a';
+    btn.textContent='Continue';
+  }else{
+    btn.style.background='rgba(217,79,79,.1)';btn.style.color='#d94f4f';
+    btn.textContent=cp==='jargon'?'Execute Remittance':'Continue';
+  }
+}
+
+['friction','feedback','copy','fees'].forEach(id=>{
+  const el=$(id);
+  el.addEventListener(el.tagName==='SELECT'?'change':'input',update);
+});
+update();
+</script>
+</body>
+</html>
